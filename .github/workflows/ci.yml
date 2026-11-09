@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Pure logic tests + the Web (wasm-gc) build: platform-neutral.
+  test-and-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MoonBit CLI
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s latest
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Verify installation
+        run: moon version --all
+
+      - name: Update dependencies
+        run: moon update
+
+      - name: Test (app, native)
+        run: moon test app --target native
+
+      - name: Build (web_wasm, wasm-gc)
+        run: moon build web_wasm --target wasm-gc
+
+  # The native macOS/Skia app needs Cocoa frameworks; it only builds on macOS.
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MoonBit CLI
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s latest
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Verify installation
+        run: moon version --all
+
+      - name: Update dependencies
+        run: moon update
+
+      - name: Build (macos_skia, native)
+        run: moon build macos_skia --target native

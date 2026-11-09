@@ -1,0 +1,66 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deployment at a time; a newer push cancels the older one.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MoonBit CLI
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s latest
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Update dependencies
+        run: moon update
+
+      - name: Build (web_wasm, wasm-gc)
+        run: moon build web_wasm --target wasm-gc
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      # The page at web_wasm/index.html references its runtime and wasm by
+      # *relative* paths (`../.mooncakes/...`, `../_build/...`), so the artifact
+      # must mirror that layout at the site root. `_build` is underscore-prefixed
+      # and would be ignored by GitHub Pages' Jekyll processing, so `.nojekyll`
+      # must be present. `?bv=` is the page's cache-buster: stamp it with the
+      # commit SHA so a redeploy never serves a stale wasm.
+      - name: Stage site
+        run: |
+          mkdir -p site/web_wasm
+          cp web_wasm/index.html site/web_wasm/
+          sed -i "s/?? \"0\"/?? \"${{ github.sha }}\"/" site/web_wasm/index.html
+          mkdir -p site/_build/wasm-gc/debug/build/web_wasm
+          cp _build/wasm-gc/debug/build/web_wasm/web_wasm.wasm \
+             site/_build/wasm-gc/debug/build/web_wasm/
+          mkdir -p site/.mooncakes/wzzc-dev
+          cp -r .mooncakes/wzzc-dev/moui_web_renderer site/.mooncakes/wzzc-dev/
+          mkdir -p site/.mooncakes/wzzc-dev/moui/backend
+          cp -r .mooncakes/wzzc-dev/moui/backend/web site/.mooncakes/wzzc-dev/moui/backend/
+          touch site/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

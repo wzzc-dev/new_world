@@ -17,6 +17,9 @@ Web 是主演示面（wasm-gc + WebGPU）；macOS Skia 是原生路线。
 
 ## 运行（Web）
 
+**线上演示**：<https://wzzc-dev.github.io/new_world/web_wasm/index.html>
+（`main` 分支 push 后由 GitHub Pages 自动部署，`?v=<n>` 可手动破缓存。）
+
 ```sh
 # 仓库根目录（本仓库是独立单模块；先 moon update 拉取依赖）
 moon update

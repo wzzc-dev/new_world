@@ -1,0 +1,11 @@
+import {
+  "wzzc-dev/new_world/app",
+  "moonbitlang/async",
+  "moonbitlang/async/http",
+}
+
+supported_targets = "native"
+
+options(
+  targets: { },
+)

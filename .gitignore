@@ -1,0 +1,9 @@
+_build/
+.DS_Store
+.studio/
+.mooncakes/
+output/
+target/
+dist/
+tmp/
+artifacts/
